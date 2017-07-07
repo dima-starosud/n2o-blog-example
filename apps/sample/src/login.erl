@@ -4,15 +4,16 @@
 -include_lib("nitro/include/nitro.hrl").
 -include_lib("records.hrl").
 
-main() -> 
-	wf:wire(#api{name=login}),
-	#dtl{file="login", bindings=[{app_id, application:get_env(sample, facebook_app_id, "")}]}.
+main() -> #dtl{file = "simpllogin", bindings = [{body, body()}]}.
+body() -> [
+  #textbox{id = name},
+  #button{id = login, body = "Login", postback = login, source = [name]}
+].
 
-api_event(login, Response, Term) ->
-	n2o_session:ensure_sid([],?CTX,[]),
-	{Props} = jsone:decode(list_to_binary(Response)),
-	User = binary_to_list(proplists:get_value(<<"name">>, Props)),
-	wf:user(User),
-	wf:redirect("/").
-
-event(_) -> ok.
+event(login) ->
+  n2o_session:ensure_sid([], ?CTX, []),
+  Name = binary_to_list(wf:q(name)),
+  wf:info(?MODULE, "User: ~p~n", [Name]),
+  wf:user(Name),
+  wf:redirect("/");
+event(Event) -> wf:info(?MODULE, "Unknown Event: ~p~n", [Event]).
